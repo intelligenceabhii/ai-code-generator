@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# AI Code Generator - Improved Quick Start Script
-# Starts backend and frontend with proper health checks
+# AI Code Generator - Quick Start
+# Starts the Gradio application with proper health checks
 
 set -e  # Exit on error
 
@@ -39,63 +39,50 @@ fi
 echo "✓ vLLM server is running"
 echo ""
 
-# Start backend
-echo "Starting backend server..."
-cd backend
-conda run -n analytics_vidhya uvicorn main:app --host 0.0.0.0 --port 8000 > ../backend.log 2>&1 &
-BACKEND_PID=$!
-cd ..
+# Start Gradio App
+echo "Starting Gradio application..."
 
-# Wait for backend to be ready
-echo "Waiting for backend to be ready..."
-if check_service "http://localhost:8000"; then
-    echo "✓ Backend server started (PID: $BACKEND_PID)"
+# Install dependencies if needed (quietly)
+echo "Ensuring dependencies are installed..."
+pip install -r requirements.txt > /dev/null 2>&1
+pip install -r backend/requirements.txt > /dev/null 2>&1
+
+# Run the app
+# Use nohup to keep it running if the script exits, but we usually wait
+conda run -n analytics_vidhya python gradio_app.py > app.log 2>&1 &
+APP_PID=$!
+
+echo "Waiting for application to be ready..."
+# Gradio usually starts on 7860
+if check_service "http://localhost:7860"; then
+    echo "✓ Application started (PID: $APP_PID)"
 else
-    echo "❌ Backend server failed to start"
-    echo "Check backend.log for errors"
-    kill $BACKEND_PID 2>/dev/null
+    echo "❌ Application failed to start"
+    echo "Check app.log for errors"
+    kill $APP_PID 2>/dev/null
     exit 1
 fi
-echo ""
-
-# Start frontend
-echo "Starting frontend server..."
-cd frontend
-# Using serve dist instead of npm run dev to avoid file watcher limits (ENOSPC)
-npx -y serve dist -l 5173 > ../frontend.log 2>&1 &
-FRONTEND_PID=$!
-cd ..
-
-# Wait for frontend to be ready
-echo "Waiting for frontend to be ready..."
-sleep 3
 
 echo ""
-echo "✅ All services started successfully!"
+echo "✅ Application started successfully!"
 echo ""
-echo "📍 URLs:"
-echo "   Backend API:  http://localhost:8000"
-echo "   Frontend UI:  http://localhost:5173"
+echo "📍 URL: http://localhost:7860"
 echo ""
-echo "📋 Logs:"
-echo "   Backend:  tail -f backend.log"
-echo "   Frontend: tail -f frontend.log"
+echo "📋 Logs: tail -f app.log"
 echo ""
-echo "🛑 To stop all services, press Ctrl+C or run: ./stop.sh"
+echo "🛑 To stop the application, press Ctrl+C or run: ./stop.sh"
 echo ""
 
-# Save PIDs to file for stop script
-echo "$BACKEND_PID" > .backend.pid
-echo "$FRONTEND_PID" > .frontend.pid
+# Save PID to file for stop script
+echo "$APP_PID" > .app.pid
 
 # Cleanup function
 cleanup() {
     echo ""
-    echo "🛑 Stopping services..."
-    kill $BACKEND_PID 2>/dev/null || true
-    kill $FRONTEND_PID 2>/dev/null || true
-    rm -f .backend.pid .frontend.pid
-    echo "✓ All services stopped"
+    echo "🛑 Stopping application..."
+    kill $APP_PID 2>/dev/null || true
+    rm -f .app.pid
+    echo "✓ Application stopped"
     exit 0
 }
 

@@ -1,26 +1,18 @@
 #!/bin/bash
 
-# Stop all services
+# Stop the AI Code Generator application
 
-echo "🛑 Stopping AI Code Generator services..."
+echo "🛑 Stopping AI Code Generator..."
 
-# Kill processes by PID if files exist
-if [ -f .backend.pid ]; then
-    BACKEND_PID=$(cat .backend.pid)
-    kill $BACKEND_PID 2>/dev/null || true
-    rm -f .backend.pid
-    echo "✓ Backend server stopped"
-fi
-
-if [ -f .frontend.pid ]; then
-    FRONTEND_PID=$(cat .frontend.pid)
-    kill $FRONTEND_PID 2>/dev/null || true
-    rm -f .frontend.pid
-    echo "✓ Frontend server stopped"
+# Kill process by PID if file exists
+if [ -f .app.pid ]; then
+    APP_PID=$(cat .app.pid)
+    kill $APP_PID 2>/dev/null || true
+    rm -f .app.pid
+    echo "✓ Application stopped (PID: $APP_PID)"
 fi
 
 # Also kill by process name as backup
-pkill -f "uvicorn main:app" 2>/dev/null || true
-pkill -f "vite" 2>/dev/null || true
+pkill -f "python gradio_app.py" 2>/dev/null || true
 
-echo "✅ All services stopped"
+echo "✅ Application stopped"
